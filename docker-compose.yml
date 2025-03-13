@@ -1,0 +1,57 @@
+services:
+    apache-php:
+        build: .
+        container_name: apache-php
+        volumes:
+            - ./www:/var/www/html # Monte le répertoire local 'www' dans le conteneur
+            - ./apache-config:/etc/apache2/sites-available # Monte le répertoire local 'apache-config' dans le conteneur
+        ports:
+            - '80:80' # Mappe le port 80 du conteneur au port 80 de l'hôte
+        environment:
+            APACHE_RUN_USER: www-data
+            APACHE_RUN_GROUP: www-data
+            XDEBUG_MODE: debug,develop
+            XDEBUG_CONFIG: client_host=host.docker.internal
+        restart: always # Redémarre toujours le conteneur en cas de panne
+        depends_on:
+            - mysql # Dépend du service 'mysql'
+
+    mysql:
+        image: mysql:8.0
+        container_name: mysql-db
+        volumes:
+            - mysql_data:/var/lib/mysql # Monte le volume 'mysql_data' dans le conteneur
+        environment:
+            MYSQL_ROOT_PASSWORD: root # Mot de passe root MySQL
+            MYSQL_DATABASE: test # Nom de la base de données par défaut
+            MYSQL_USER: root # Nom d'utilisateur MySQL
+            MYSQL_PASSWORD: root # Mot de passe de l'utilisateur MySQL
+        ports:
+            - '3306:3306' # Mappe le port 3306 du conteneur au port 3306 de l'hôte
+        restart: always # Redémarre toujours le conteneur en cas de panne
+
+    phpmyadmin:
+        image: phpmyadmin:latest
+        container_name: phpmyadmin
+        environment:
+            PMA_HOST: mysql # Hôte MySQL pour phpMyAdmin
+            MYSQL_ROOT_PASSWORD: root # Mot de passe root MySQL pour phpMyAdmin
+        restart: always # Redémarre toujours le conteneur en cas de panne
+        ports:
+            - '8081:80' # Mappe le port 80 du conteneur au port 8081 de l'hôte
+
+    jupyter:
+        image: jupyter/base-notebook
+        container_name: jupyter_server
+        ports:
+            - '8888:8888' # Mappe le port 8888 du conteneur au port 8888 de l'hôte
+        volumes:
+            - ./notebooks:/home/jovyan/work # Monte le répertoire local 'notebooks' dans le conteneur
+        environment:
+            - JUPYTER_ENABLE_LAB=yes # Active JupyterLab
+        command: >
+            bash -c "pip install pandas numpy matplotlib seaborn && start-notebook.sh" # Installe des packages Python et démarre le notebook
+        restart: always # Redémarre toujours le conteneur en cas de panne
+
+volumes:
+    mysql_data: # Déclare le volume 'mysql_data'
